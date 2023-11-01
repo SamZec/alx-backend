@@ -3,7 +3,7 @@
 
 
 from flask import Flask, render_template, request, g
-from flask_babel import Babel, _
+from flask_babel import Babel
 
 
 app = Flask(__name__)
@@ -31,9 +31,12 @@ app.config.from_object(Config)
 @babel.localeselector
 def get_locale() -> str:
     """determine the best match supported languages."""
-    user = getattr(g, 'user', None)
-    if user:
-        return user['locale']
+    locale = request.args.get('locale')
+    if locale and locale in Config.LANGUAGES:
+        return locale
+    locale = g.user['locale']
+    if locale:
+        return locale
     return request.accept_languages.best_match(app.config['LANGUAGES'])
 
 
@@ -52,7 +55,7 @@ def get_user() -> dict:
 
 
 @app.before_request
-def before_request():
+def before_request() -> None:
     """use get_user to find a user"""
     user = get_user()
     if user and user['locale'] in Config.LANGUAGES:
