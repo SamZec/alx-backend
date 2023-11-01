@@ -3,7 +3,7 @@
 
 
 from flask import Flask, render_template, request, g
-from flask_babel import Babel, _
+from flask_babel import Babel, lazy_gettext as _, format_datetime
 from datetime import datetime
 import pytz
 
@@ -49,14 +49,17 @@ def get_timezone() -> pytz.timezone:
     """ validate time zone"""
     timezone = request.args.get('timezone')
     if timezone:
-        print(pytz.timezone(timezone))
-        return g.time
-    user_time = g.user.get('timezone')
-    if user_time:
-        print(pytz.timezone(user_time))
-        return g.time
-    Config.BABEL_DEFAULT_TIMEZONE
-    return g.time
+        try:
+            return pytz.timezone(timezone)
+        except pytz.exceptions.UnknownTimeZoneError:
+            return pytz.timezone(Config.BABEL_DEFAULT_TIMEZONE)
+    if g.user:
+        user_time = g.user.get('timezone')
+        try:
+            return pytz.timezone(user_time)
+        except pytz.exceptions.UnknownTimeZoneError:
+            return pytz.timezone(Config.BABEL_DEFAULT_TIMEZONE)
+    return pytz.timezone(Config.BABEL_DEFAULT_TIMEZONE)
 
 
 @app.route('/', strict_slashes=False)
@@ -77,8 +80,11 @@ def get_user() -> dict:
 def before_request() -> None:
     """use get_user to find a user"""
     user = get_user()
+    g.user = None
     if user and user['locale'] in Config.LANGUAGES:
         g.user = user
+    time = datetime.now(get_timezone())
+    g.time = format_datetime(time)
 
 
 if __name__ == '__main__':
