@@ -58,11 +58,11 @@ jobs.forEach((item) => {
     .on('complete', () => {
       console.log('Notification job completed');
     })
-    .on('failed attempt', () => {
-      console.log('Notification job failed');
+    .on('failed', (err) => {
+      console.log(`Notification job ${job.id} failed: ${err}`);
     })
     .on('progress', (progress, data) => {
-      console.log(`Notification job ${job.id} ${progress}% complete`);
+      console.log(`Notification job #${job.id} ${progress}% complete`);
     });
   job.save();
 });
